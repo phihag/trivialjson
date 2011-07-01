@@ -1,5 +1,5 @@
 Makefile to download/extract exttests
 Simplify len(s) tests in skipSpace
-error(msg, i)
+Cover all premature end conditions
 test unicode inputs, u''
-
+test w/ 2to3, py3
