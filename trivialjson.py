@@ -9,9 +9,12 @@ except ImportError: # Python <2.5, use trivialjson:
 		def loads(s):
 			def raiseError(msg, i):
 				raise ValueError(msg + ' at position ' + str(i) + ' of ' + repr(s) + ': ' + repr(s[i:]))
-			def skipSpace(i):
+			def skipSpace(i, expectMore=False):
 				while i < len(s) and s[i] in ' \t\r\n':
 					i += 1
+				if expectMore:
+					if i >= len(s):
+						raiseError('Premature end', i)
 				return i
 			def decodeEscape(match):
 				esc = match.group(1)
@@ -36,8 +39,6 @@ except ImportError: # Python <2.5, use trivialjson:
 						return unichr((hi - 0xd800) * 0x400 + low - 0xdc00 + 0x10000)
 				raise ValueError('Unknown escape ' + str(esc))
 			def parseString(i):
-				if s[i] != '"':
-					raise ValueError('Expected a string at char ' + str(i) + ' of ' + repr(s))
 				i += 1
 				e = i
 				while True:
@@ -55,63 +56,55 @@ except ImportError: # Python <2.5, use trivialjson:
 				stri = rexp.sub(decodeEscape, stri)
 				return (e+1,stri)
 			def parseObj(i):
-				if s[i] != '{':
-					raise ValueError('Expected an object at char ' + str(i))
 				i += 1
 				res = {}
 				while True:
-					i = skipSpace(i)
-					if i >= len(s):
-						raise ValueError('Premature end of dictionary at position ' + str(i) + ' of ' + repr(s))
+					i = skipSpace(i, True)
 					if s[i] == '}': # Empty dictionary
 						return (i+1,res)
+					if s[i] != '"':
+						raiseError('Expected a string object key', i)
 					i,key = parseString(i)
 					i = skipSpace(i)
 					if i >= len(s) or s[i] != ':':
-						raise ValueError('Expected a colon at position ' + str(i))
+						raiseError('Expected a colon', i)
 					i,val = parse(i+1)
 					res[key] = val
-					if i >= len(s):
-						raise ValueError('Premature end of dictionary at position ' + str(i) + ' of ' + repr(s))
+					i = skipSpace(i, True)
 					if s[i] == '}':
 						return (i+1, res)
 					if s[i] != ',':
-						raise ValueError('Expected comma or closing curly brace at position ' + str(i))
+						raiseError('Expected comma or closing curly brace', i)
 					i += 1
 			def parseArray(i):
-				if s[i] != '[':
-					raise ValueError('Expected an array at char ' + str(i) + ' of ' + repr(s))
 				res = []
 				while True:
-					i = skipSpace(i+1)
-					if i >= len(s):
-						raise ValueError('Premature end of array')
+					i = skipSpace(i+1, True)
 					if s[i] == ']':
 						return (i+1,res)
 					i,val = parse(i)
+					i = skipSpace(i, True)
 					res.append(val)
-					if i >= len(s):
-						raise ValueError('Premature end of array')
 					if s[i] == ']':
 						return (i+1, res)
 					if s[i] != ',':
-						raise ValueError('Expected a comma or closing bracket at position ' + str(i))
+						raiseError('Expected a comma or closing bracket', i)
 			def parseDiscrete(i):
 				for k,v in {'true': True, 'false': False, 'null': None}.items():
 					if s.startswith(k, i):
 						return (i+len(s), v)
-				raise ValueError('Not a boolean (or null) at char ' + str(i) + ' of ' + repr(s))
+				raiseError('Not a boolean (or null)', i)
 			def parseNumber(i):
-				mobj = re.match('^([0-9.eE]+)([^0-9.eE]|$)', s[i:])
+				mobj = re.match('^(-?[0-9.]+([eE]-?[0-9]+)?)', s[i:])
 				if mobj is None:
-					raise ValueError('Not a number at char ' + str(i) + ' of ' + repr(s[i]))
+					raiseError('Not a number', i)
 				nums = mobj.group(1)
 				if '.' in nums or 'e' in nums or 'E' in nums:
 					return (i+len(nums), float(nums))
 				return (i+len(nums), int(nums))
 			CHARMAP = {'{': parseObj, '[': parseArray, '"': parseString, 't': parseDiscrete, 'f': parseDiscrete, 'n': parseDiscrete}
 			def parse(i):
-				i = skipSpace(i)
+				i = skipSpace(i, True)
 				i,res = CHARMAP.get(s[i], parseNumber)(i)
 				i = skipSpace(i)
 				return (i,res)

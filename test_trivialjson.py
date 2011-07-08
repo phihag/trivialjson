@@ -20,13 +20,29 @@ def test_basic():
 	assert loads('false') == False
 	assert loads('null') == None
 	assertInvalid('True')
+	assertInvalid('_')
+	assertInvalid('tfalse')
 
 def test_object():
 	assert loads('{}') == {}
 	assert loads('{"a":"b"}') == {"a":"b"}
 	assert loads('{"a":"b","c":"d"}') == {"a":"b","c":"d"}
+	assert loads('{"a":{}, "b": {"c": {"d" : "e"}}}') == {"a": {}, "b": {"c": {"d" : "e"}}}
 	assertInvalid('{')
+	assertInvalid('{"')
+	assertInvalid('{"a')
+	assertInvalid('{"a"')
+	assertInvalid('{"a":')
+	assertInvalid('{"a":"')
+	assertInvalid('{"a":"b')
+	assertInvalid('{"a":"b"')
+	assertInvalid('{"a":"b" ,')
+	assertInvalid('{"a":"b", "c"')
+	assertInvalid('{"a":"b", 2')
+	assertInvalid('{"a":"b", "c":')
+	assertInvalid('{"a":"b", "c":"e"')
 	assertInvalid('{"a" : "b"')
+	assertInvalid('{"a" : 2 1')
 	assert loads('{"a" : "b"}') == {'a':'b'}
 	assertInvalid('{1:2}')
 	assertInvalid(' {"x" \n  : "a b c" \t\n\t,\t"y": "z"\t')
@@ -38,10 +54,20 @@ def test_array():
 	assert loads(' [  1 , 2 ] ') == [1,2]
 	assert loads(' [  1 , 2 , 3,4 ] ') == [1,2,3,4]
 	assertInvalid(' [ ')
+	assertInvalid(' [1,')
 	assertInvalid(' [1, ')
 	assertInvalid(' [1 ')
 	assertInvalid(' [,1] ')
 	assertInvalid('[,]')
+	assertInvalid('[1 2]')
+
+def test_number():
+	assert loads('1') == 1
+	assert loads('1.0') == 1.0
+	assert loads('1e200') == 1e200
+	assert loads('-42') == -42
+	assert loads('-23E-200') == -23e-200
+	assertInvalid('1.2.3')
 
 def test_backslashes():
 	assert loads(r'"\""') == '"'
@@ -82,5 +108,10 @@ def test_skipspace():
 	assert loads(' { } ') == {}
 	assert loads(' \t{ \n} \r \r\n') == {}
 	assert loads(' {"x" \n  : "a b c" \t\n\t,\t"y": "z"\t}') == {'x': 'a b c', 'y': 'z'}
-	assert loads(' {"x": [   1 , 2  ,3, 4\t]}') == {'x': [1,2,3,4]}
+	assert loads(' {"x": [   1 , 2  ,3, 4\t]   }') == {'x': [1,2,3,4]}
 
+def test_multiple_roots():
+	assertInvalid('')
+	assertInvalid('1 2')
+	assertInvalid('{} {}')
+	assertInvalid('"a" ,[]')

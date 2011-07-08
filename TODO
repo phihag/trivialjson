@@ -1,5 +1,3 @@
-Makefile to download/extract exttests
-Simplify len(s) tests in skipSpace
-Cover all premature end conditions
 test unicode inputs, u''
-test w/ 2to3, py3
+test w/ 2to3, direct py3
+s/import json__/import json
