@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import with_statement
+
 import unittest
+import os
 _trivialjson_testing = True
 import trivialjson
 
@@ -19,6 +22,11 @@ def assertRaises(err, code, *args, **kwargs):
 	raise AssertionError('Expected ' + str(err))
 assertInvalid = lambda jsoni: assertRaises(ValueError, loads, jsoni)
 
+# Prevent contextlib from being by coverage tools
+import sys
+import contextlib
+del sys.modules['contextlib']
+
 def test_basic():
 	assert loads('1') == 1
 	assert loads('""') == ''
@@ -32,6 +40,7 @@ def test_basic():
 
 def test_object():
 	assert loads('{}') == {}
+	assert loads('{  }') == {}
 	assert loads('{"a":"b"}') == {"a":"b"}
 	assert loads('{"a":"b","c":"d"}') == {"a":"b","c":"d"}
 	assert loads('{"a":{}, "b": {"c": {"d" : "e"}}}') == {"a": {}, "b": {"c": {"d" : "e"}}}
@@ -50,8 +59,10 @@ def test_object():
 	assertInvalid('{"a":"b", "c":"e"')
 	assertInvalid('{"a" : "b"')
 	assertInvalid('{"a" : 2 1')
+	assertInvalid('{"a"= "b"}')
 	assert loads('{"a" : "b"}') == {'a':'b'}
 	assertInvalid('{1:2}')
+	assertInvalid('{"a":2,}')
 	assertInvalid(' {"x" \n  : "a b c" \t\n\t,\t"y": "z"\t')
 
 def test_array():
@@ -60,12 +71,14 @@ def test_array():
 	assert loads('[ 1 ]') == [1]
 	assert loads(' [  1 , 2 ] ') == [1,2]
 	assert loads(' [  1 , 2 , 3,4 ] ') == [1,2,3,4]
+	assert loads('[true,false, null]') == [True, False, None]
 	assertInvalid(' [ ')
 	assertInvalid(' [1,')
 	assertInvalid(' [1, ')
 	assertInvalid(' [1 ')
 	assertInvalid(' [,1] ')
 	assertInvalid('[,]')
+	assertInvalid('[1,]')
 	assertInvalid('[1 2]')
 
 def test_number():
@@ -122,6 +135,31 @@ def test_multiple_roots():
 	assertInvalid('1 2')
 	assertInvalid('{} {}')
 	assertInvalid('"a" ,[]')
+
+# This test is a nop if external tests are not present
+def test_external():
+	IGNORED = [
+		'fail1.json', # Allow strings as root
+		'fail18.json', # Maximum array depth
+		'fail25.json', # Allow tab in strings
+		'fail27.json', # Allow newlines in strings
+		'fail28.json', # Allow newlines in strings
+	]
+	exttestdir = os.path.join(os.path.dirname(__file__), 'exttests', 'json.org-checker')
+	try:
+		files = os.listdir(exttestdir)
+	except OSError: # json.org tests not downloaded
+		return # Skip this test
+	for fn in files:
+		if fn in IGNORED:
+			continue
+		with contextlib.closing(open(os.path.join(exttestdir, fn), 'rb')) as f:
+			content = f.read()
+		print(fn)
+		if fn.startswith('fail'):
+			assertRaises(ValueError, loadsb, content)
+		else:
+			assert loadsb(content)
 
 if __name__ == '__main__':
 	testfuncs = [f for fname,f in locals().items() if fname.startswith('test_')]

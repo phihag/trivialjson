@@ -1,3 +1,6 @@
 .coverage
 .coverage-html
 trivialjson.pyc
+exttests
+test.zip
+test_trivialjson.py,cover

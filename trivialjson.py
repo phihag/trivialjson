@@ -12,7 +12,7 @@ except ImportError: # Python <2.5, use trivialjson:
 			s = s.decode('UTF-8')
 			def raiseError(msg, i):
 				raise ValueError(msg + ' at position ' + str(i) + ' of ' + repr(s) + ': ' + repr(s[i:]))
-			def skipSpace(i, expectMore=False):
+			def skipSpace(i, expectMore=True):
 				while i < len(s) and s[i] in ' \t\r\n':
 					i += 1
 				if expectMore:
@@ -59,10 +59,10 @@ except ImportError: # Python <2.5, use trivialjson:
 			def parseObj(i):
 				i += 1
 				res = {}
+				i = skipSpace(i)
+				if s[i] == '}': # Empty dictionary
+					return (i+1,res)
 				while True:
-					i = skipSpace(i, True)
-					if s[i] == '}': # Empty dictionary
-						return (i+1,res)
 					if s[i] != '"':
 						raiseError('Expected a string object key', i)
 					i,key = parseString(i)
@@ -71,32 +71,33 @@ except ImportError: # Python <2.5, use trivialjson:
 						raiseError('Expected a colon', i)
 					i,val = parse(i+1)
 					res[key] = val
-					i = skipSpace(i, True)
+					i = skipSpace(i)
 					if s[i] == '}':
 						return (i+1, res)
 					if s[i] != ',':
 						raiseError('Expected comma or closing curly brace', i)
-					i += 1
+					i = skipSpace(i+1)
 			def parseArray(i):
 				res = []
+				i = skipSpace(i+1)
+				if s[i] == ']': # Empty array
+					return (i+1,res)
 				while True:
-					i = skipSpace(i+1, True)
-					if s[i] == ']':
-						return (i+1,res)
 					i,val = parse(i)
-					i = skipSpace(i, True)
 					res.append(val)
+					i = skipSpace(i) # Raise exception if premature end
 					if s[i] == ']':
 						return (i+1, res)
 					if s[i] != ',':
 						raiseError('Expected a comma or closing bracket', i)
+					i = skipSpace(i+1)
 			def parseDiscrete(i):
 				for k,v in {'true': True, 'false': False, 'null': None}.items():
 					if s.startswith(k, i):
-						return (i+len(s), v)
+						return (i+len(k), v)
 				raiseError('Not a boolean (or null)', i)
 			def parseNumber(i):
-				mobj = re.match('^(-?[0-9.]+([eE]-?[0-9]+)?)', s[i:])
+				mobj = re.match('^(-?(0|[1-9][0-9]*)(\.[0-9]*)?([eE][+-]?[0-9]+)?)', s[i:])
 				if mobj is None:
 					raiseError('Not a number', i)
 				nums = mobj.group(1)
@@ -105,9 +106,9 @@ except ImportError: # Python <2.5, use trivialjson:
 				return (i+len(nums), int(nums))
 			CHARMAP = {'{': parseObj, '[': parseArray, '"': parseString, 't': parseDiscrete, 'f': parseDiscrete, 'n': parseDiscrete}
 			def parse(i):
-				i = skipSpace(i, True)
-				i,res = CHARMAP.get(s[i], parseNumber)(i)
 				i = skipSpace(i)
+				i,res = CHARMAP.get(s[i], parseNumber)(i)
+				i = skipSpace(i, False)
 				return (i,res)
 
 			i,res = parse(0)
