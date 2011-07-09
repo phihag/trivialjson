@@ -7,6 +7,7 @@ all: test test-py25 test-py2to3 test-py3-parsing
 
 test: exttests
 	nosetests --with-coverage --cover-erase --cover-html "--cover-html-dir=${COVERAGE_TMPDIR}" test_trivialjson.py
+	@rm -f test_trivialjson.py,cover
 
 test-py25: exttests
 	python2.5 test_trivialjson.py
