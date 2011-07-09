@@ -4,7 +4,7 @@ try:
 	if not '_trivialjson_testing' in dir():
 		raise ImportError('testing')
 	import json # pragma: no cover
-except ImportError: # Python <2.5, use trivialjson:
+except ImportError: # Python <2.5, use trivialjson (https://github.com/phihag/trivialjson):
 	import re
 	class json(object):
 		@staticmethod
