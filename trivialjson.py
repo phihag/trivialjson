@@ -110,7 +110,6 @@ except ImportError: # Python <2.5, use trivialjson:
 				i,res = CHARMAP.get(s[i], parseNumber)(i)
 				i = skipSpace(i, False)
 				return (i,res)
-
 			i,res = parse(0)
 			if i < len(s):
 				raise ValueError('Extra data at end of input (index ' + str(i) + ' of ' + repr(s) + ': ' + repr(s[i:]) + ')')
