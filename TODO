@@ -1,3 +1,0 @@
-test unicode inputs, u''
-test w/ 2to3, direct py3
-s/import json__/import json

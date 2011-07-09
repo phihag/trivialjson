@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 
 try:
-	import json__
+	if not '_trivialjson_testing' in dir():
+		raise ImportError('testing')
+	import json # pragma: no cover
 except ImportError: # Python <2.5, use trivialjson:
 	import re
 	class json(object):
 		@staticmethod
 		def loads(s):
+			s = s.decode('UTF-8')
 			def raiseError(msg, i):
 				raise ValueError(msg + ' at position ' + str(i) + ' of ' + repr(s) + ': ' + repr(s[i:]))
 			def skipSpace(i, expectMore=False):
@@ -19,14 +22,14 @@ except ImportError: # Python <2.5, use trivialjson:
 			def decodeEscape(match):
 				esc = match.group(1)
 				_STATIC = {
-					u'"': u'"',
-					u'\\': u'\\',
-					u'/': u'/',
-					u'b': unichr(0x8),
-					u'f': unichr(0xc),
-					u'n': u'\n',
-					u'r': u'\r',
-					u't': u'\t',
+					'"': '"',
+					'\\': '\\',
+					'/': '/',
+					'b': unichr(0x8),
+					'f': unichr(0xc),
+					'n': '\n',
+					'r': '\r',
+					't': '\t',
 				}
 				if esc in _STATIC:
 					return _STATIC[esc]
@@ -50,10 +53,8 @@ except ImportError: # Python <2.5, use trivialjson:
 						e += 1
 						continue
 					break
-
-				stri = s[i:e].decode('UTF-8')
 				rexp = re.compile(r'\\(u[dD][89aAbB][0-9a-fA-F]{2}\\u[0-9a-fA-F]{4}|u[0-9a-fA-F]{4}|.|$)')
-				stri = rexp.sub(decodeEscape, stri)
+				stri = rexp.sub(decodeEscape, s[i:e])
 				return (e+1,stri)
 			def parseObj(i):
 				i += 1

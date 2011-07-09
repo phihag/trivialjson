@@ -1,8 +1,15 @@
 # -*- coding: utf-8 -*-
 
 import unittest
+_trivialjson_testing = True
 import trivialjson
-loads = trivialjson.json.loads
+
+loadsb = trivialjson.json.loads # Load from bytes
+try:
+	bytes
+	loads = lambda s: loadsb(s.encode('utf-8'))
+except NameError:
+	loads = loadsb
 
 def assertRaises(err, code, *args, **kwargs):
 	try:
@@ -91,17 +98,17 @@ def test_escapes():
 	assertInvalid('"\\\'"')
 
 def test_unicode():
-	assert loads('"\u1234"'.encode('UTF-8')) == unichr(0x1234)
-	assert loads('"\u0000"'.encode('UTF-8')) == unichr(0x0000)
-	assert loads('"\u1000\u2000"'.encode('UTF-8')) == unichr(0x1000) + unichr(0x2000)
+	assert loadsb('"\u1234"'.encode('UTF-8')) == unichr(0x1234)
+	assert loadsb('"\u0000"'.encode('UTF-8')) == unichr(0x0000)
+	assert loadsb('"\u1000\u2000"'.encode('UTF-8')) == unichr(0x1000) + unichr(0x2000)
 
 def test_unicode_escapes_bmp():
-	assert loads('"\\u1234"'.encode('UTF-8')) == unichr(0x1234)
-	assert loads('"\\u0000"'.encode('UTF-8')) == unichr(0x0000)
-	assert loads('"\\u1000\\u2000"'.encode('UTF-8')) == unichr(0x1000) + unichr(0x2000)
+	assert loadsb('"\\u1234"'.encode('UTF-8')) == unichr(0x1234)
+	assert loadsb('"\\u0000"'.encode('UTF-8')) == unichr(0x0000)
+	assert loadsb('"\\u1000\\u2000"'.encode('UTF-8')) == unichr(0x1000) + unichr(0x2000)
 
 def test_unicode_escapes_complex():
-	assert loads('"\\uD834\\uDD1E"'.encode('UTF-8')) == unichr(0x1d11e)
+	assert loadsb('"\\uD834\\uDD1E"'.encode('UTF-8')) == unichr(0x1d11e)
 
 def test_skipspace():
 	assert loads('1 ') == 1
@@ -115,3 +122,8 @@ def test_multiple_roots():
 	assertInvalid('1 2')
 	assertInvalid('{} {}')
 	assertInvalid('"a" ,[]')
+
+if __name__ == '__main__':
+	testfuncs = [f for fname,f in locals().items() if fname.startswith('test_')]
+	for tf in testfuncs:
+		tf()
