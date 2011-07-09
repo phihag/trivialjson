@@ -150,12 +150,13 @@ def test_external():
 		files = os.listdir(exttestdir)
 	except OSError: # json.org tests not downloaded
 		return # Skip this test
+	#print('Found json.org-checker tests, testing ...')
 	for fn in files:
 		if fn in IGNORED:
 			continue
 		with contextlib.closing(open(os.path.join(exttestdir, fn), 'rb')) as f:
 			content = f.read()
-		print(fn)
+		#print('  ' + fn)
 		if fn.startswith('fail'):
 			assertRaises(ValueError, loadsb, content)
 		else:
