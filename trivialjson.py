@@ -8,6 +8,10 @@ except ImportError: # Python <2.6, use trivialjson (https://github.com/phihag/tr
 	import re
 	class json(object):
 		@staticmethod
+		def load(fp):
+			return json.loads(fp.read())
+		
+		@staticmethod
 		def loads(s):
 			s = s.decode('UTF-8')
 			def raiseError(msg, i):

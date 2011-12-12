@@ -7,12 +7,20 @@ import os
 _trivialjson_testing = True
 import trivialjson
 
+try:
+	from io import BytesIO
+except ImportError: # Python 2
+	import StringIO
+	BytesIO = StringIO.StringIO
+
 loadsb = trivialjson.json.loads # Load from bytes
 try:
 	bytes
 	loads = lambda s: loadsb(s.encode('utf-8'))
 except NameError:
 	loads = loadsb
+
+load = trivialjson.json.load
 
 def assertRaises(err, code, *args, **kwargs):
 	try:
@@ -22,10 +30,12 @@ def assertRaises(err, code, *args, **kwargs):
 	raise AssertionError('Expected ' + str(err))
 assertInvalid = lambda jsoni: assertRaises(ValueError, loads, jsoni)
 
-# Prevent contextlib from being by coverage tools
+# Prevent modules from being by coverage tools
 import sys
 import contextlib
 del sys.modules['contextlib']
+if 'io' in sys.modules:
+	del sys.modules['io']
 
 def test_basic():
 	assert loads('1') == 1
@@ -150,17 +160,23 @@ def test_external():
 		files = os.listdir(exttestdir)
 	except OSError: # json.org tests not downloaded
 		return # Skip this test
-	#print('Found json.org-checker tests, testing ...')
+
 	for fn in files:
 		if fn in IGNORED:
 			continue
 		with contextlib.closing(open(os.path.join(exttestdir, fn), 'rb')) as f:
 			content = f.read()
-		#print('  ' + fn)
 		if fn.startswith('fail'):
 			assertRaises(ValueError, loadsb, content)
 		else:
 			assert loadsb(content)
+
+def test_load():
+	stream = BytesIO('{"a":"b", "c": 42}'.encode('UTF-8'))
+	assert load(stream) == {
+		'a': 'b',
+		'c': 42,
+	}
 
 if __name__ == '__main__':
 	testfuncs = [f for fname,f in locals().items() if fname.startswith('test_')]
