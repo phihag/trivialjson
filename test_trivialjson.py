@@ -1,26 +1,31 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 from __future__ import with_statement
 
+import codecs
+import contextlib
 import unittest
 import os
-_trivialjson_testing = True
-import trivialjson
+try:
+	from io import StringIO
+except ImportError:
+	from StringIO import StringIO
+
+import imp
+file,pathname,description = imp.find_module('trivialjson')
+trivialjson = imp.load_module('trivialjson_testing', file, pathname, description)
+
+loads = trivialjson.json.loads # Load from bytes
 
 try:
-	from io import BytesIO
-except ImportError: # Python 2
-	import StringIO
-	BytesIO = StringIO.StringIO
-
-loadsb = trivialjson.json.loads # Load from bytes
-try:
-	bytes
-	loads = lambda s: loadsb(s.encode('utf-8'))
-except NameError:
-	loads = loadsb
+	chr(256)
+	_compat_chr = chr
+except ValueError: # Python 2
+	_compat_chr = unichr
 
 load = trivialjson.json.load
+
 
 def assertRaises(err, code, *args, **kwargs):
 	try:
@@ -30,12 +35,17 @@ def assertRaises(err, code, *args, **kwargs):
 	raise AssertionError('Expected ' + str(err))
 assertInvalid = lambda jsoni: assertRaises(ValueError, loads, jsoni)
 
-# Prevent modules from being by coverage tools
-import sys
-import contextlib
-del sys.modules['contextlib']
-if 'io' in sys.modules:
-	del sys.modules['io']
+def _compat_StringIO(s):
+	""" In Python 2.7, io.StringIO expects a string (i.e. unicode), not bytes (i.e. str)"""
+	try:
+		bytes
+	except NameError:
+		pass
+	else:
+		if isinstance(s, bytes):
+			s = s.decode('UTF-8')
+	return StringIO(s)
+
 
 def test_basic():
 	assert loads('1') == 1
@@ -121,17 +131,17 @@ def test_escapes():
 	assertInvalid('"\\\'"')
 
 def test_unicode():
-	assert loadsb('"\u1234"'.encode('UTF-8')) == unichr(0x1234)
-	assert loadsb('"\u0000"'.encode('UTF-8')) == unichr(0x0000)
-	assert loadsb('"\u1000\u2000"'.encode('UTF-8')) == unichr(0x1000) + unichr(0x2000)
+	assert loads('"\u1234"') == _compat_chr(0x1234)
+	assert loads('"\u00AA"') == _compat_chr(0x00AA)
+	assert loads('"\u1000\u2000"') == _compat_chr(0x1000) + _compat_chr(0x2000)
 
 def test_unicode_escapes_bmp():
-	assert loadsb('"\\u1234"'.encode('UTF-8')) == unichr(0x1234)
-	assert loadsb('"\\u0000"'.encode('UTF-8')) == unichr(0x0000)
-	assert loadsb('"\\u1000\\u2000"'.encode('UTF-8')) == unichr(0x1000) + unichr(0x2000)
+	assert loads('"\\u1234"') == _compat_chr(0x1234)
+	assert loads('"\\u0000"') == _compat_chr(0x0000)
+	assert loads('"\\u1000\\u2000"') == _compat_chr(0x1000) + _compat_chr(0x2000)
 
 def test_unicode_escapes_complex():
-	assert loadsb('"\\uD834\\uDD1E"'.encode('UTF-8')) == unichr(0x1d11e)
+	assert loads('"\\uD834\\uDD1E"') == _compat_chr(0x1d11e)
 
 def test_skipspace():
 	assert loads('1 ') == 1
@@ -164,15 +174,15 @@ def test_external():
 	for fn in files:
 		if fn in IGNORED:
 			continue
-		with contextlib.closing(open(os.path.join(exttestdir, fn), 'rb')) as f:
+		with contextlib.closing(codecs.open(os.path.join(exttestdir, fn), 'r', 'UTF-8')) as f:
 			content = f.read()
 		if fn.startswith('fail'):
-			assertRaises(ValueError, loadsb, content)
+			assertRaises(ValueError, loads, content)
 		else:
-			assert loadsb(content)
+			assert loads(content)
 
 def test_load():
-	stream = BytesIO('{"a":"b", "c": 42}'.encode('UTF-8'))
+	stream = _compat_StringIO('{"a":"b", "c": 42}')
 	assert load(stream) == {
 		'a': 'b',
 		'c': 42,

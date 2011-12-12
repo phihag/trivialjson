@@ -1,19 +1,23 @@
 # -*- coding: utf-8 -*-
 
 try:
-	if not '_trivialjson_testing' in dir():
+	if __name__  == 'trivialjson_testing':
 		raise ImportError('testing')
 	import json # pragma: no cover
 except ImportError: # Python <2.6, use trivialjson (https://github.com/phihag/trivialjson):
 	import re
+	try:
+		chr(256)
+		_compat_chr = chr # pragma: no cover
+	except ValueError: # Python 2
+		_compat_chr = unichr # pragma: no cover
+
 	class json(object):
 		@staticmethod
 		def load(fp):
 			return json.loads(fp.read())
-		
 		@staticmethod
 		def loads(s):
-			s = s.decode('UTF-8')
 			def raiseError(msg, i):
 				raise ValueError(msg + ' at position ' + str(i) + ' of ' + repr(s) + ': ' + repr(s[i:]))
 			def skipSpace(i, expectMore=True):
@@ -29,8 +33,8 @@ except ImportError: # Python <2.6, use trivialjson (https://github.com/phihag/tr
 					'"': '"',
 					'\\': '\\',
 					'/': '/',
-					'b': unichr(0x8),
-					'f': unichr(0xc),
+					'b': _compat_chr(0x8),
+					'f': _compat_chr(0xc),
 					'n': '\n',
 					'r': '\r',
 					't': '\t',
@@ -39,11 +43,11 @@ except ImportError: # Python <2.6, use trivialjson (https://github.com/phihag/tr
 					return _STATIC[esc]
 				if esc[0] == 'u':
 					if len(esc) == 1+4:
-						return unichr(int(esc[1:5], 16))
+						return _compat_chr(int(esc[1:5], 16))
 					if len(esc) == 5+6 and esc[5:7] == '\\u':
 						hi = int(esc[1:5], 16)
 						low = int(esc[7:11], 16)
-						return unichr((hi - 0xd800) * 0x400 + low - 0xdc00 + 0x10000)
+						return _compat_chr((hi - 0xd800) * 0x400 + low - 0xdc00 + 0x10000)
 				raise ValueError('Unknown escape ' + str(esc))
 			def parseString(i):
 				i += 1
